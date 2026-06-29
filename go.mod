@@ -1,3 +1,3 @@
-module github.com/sergegamb/musicbot
+module github.com/sergegamb/music-project
 
 go 1.25.5

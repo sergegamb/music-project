@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'cmd/bot/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   build-and-push:
@@ -25,6 +31,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./cmd/bot/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest
           cache-from: type=gha
@@ -42,16 +49,17 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest
-            
-            # Останавливаем старый контейнер, если он есть
             docker stop music-bot-container || true
             docker rm music-bot-container || true
-            
-            # Запускаем новый контейнер на порту 8080
             docker run -d \
               --name music-bot-container \
+              --network music_network \
               -p 127.0.0.1:8080:8080 \
               -e BOT_TOKEN="${{ secrets.BOT_TOKEN }}" \
               -e PORT="8080" \
+              -e DB_HOST="music_bot_db" \
+              -e DB_USER="music_user" \
+              -e DB_NAME="music_db" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               --restart unless-stopped \
               ${{ secrets.DOCKERHUB_USERNAME }}/music-bot:latest
